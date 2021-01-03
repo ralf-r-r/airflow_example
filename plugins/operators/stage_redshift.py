@@ -1,7 +1,7 @@
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
-import psycopg2
+from airflow.contrib.hooks.aws_hook import AwsHook
 
 
 class StageToRedshiftOperator(BaseOperator):
@@ -9,51 +9,69 @@ class StageToRedshiftOperator(BaseOperator):
 
     @apply_defaults
     def __init__(self,
-                 RS_host: str,
-                 RS_dbname: str,
-                 RS_user: str,
-                 RS_pw: str,
-                 RS_port: str,
+                 AWS_credentials_id: str,
+                 RS_conn_id: str,
                  RS_target_table: str,
                  S3_path: str,
-                 S3_jsonpath: str,
-                 S3_region: str,
-                 S3_IAM_role: str,
+                 S3_jsonpath: str = None,
+                 S3_region: str = 'us-west-2',
                  *args,
                  **kwargs):
-        
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
 
-        self.RS_host = RS_host
-        self.RS_dbname = RS_dbname
-        self.RS_user = RS_user
-        self.RS_pw = RS_pw
-        self.RS_port = RS_port
+        self.AWS_credentials_id = AWS_credentials_id
+        self.RS_conn_id = RS_conn_id
         self.RS_target_table = RS_target_table
         self.S3_path = S3_path
         self.S3_jsonpath = S3_jsonpath
         self.S3_region = S3_region
-        self.S3_IAM_role = S3_IAM_role
 
     def execute(self, context):
-        self.log.info('staging from ' + self.S3_path + ' to ' + self.RS_host + ' ' + self.RS_dbname + ' started')
+        self.log.info('staging from ' + self.S3_path + ' to ' + self.RS_target_table + ' started')
 
-        staging_copy = ("""
-        COPY {} FROM {}
-        CREDENTIALS 'aws_iam_role={}'
-        JSON {}
-        EMPTYASNULL
-        BLANKSASNULL
-        REGION {};
-        """).format(self.RS_target_table, self.S3_path, self.S3_IAM_role, self.S3_jsonpath, self.S3_region)
+        redshift = PostgresHook(postgres_conn_id=self.RS_conn_id)
+        aws_hook = AwsHook(self.AWS_credentials_id)
+        credentials = aws_hook.get_credentials()
 
-        conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(
-            self.RS_host, self.RS_dbname, self.RS_user, self.RS_pw, self.RS_port
-        ))
+        if self.S3_jsonpath != None:
+            staging_copy = """
+                    COPY {}
+                    FROM '{}'
+                    ACCESS_KEY_ID '{}'
+                    SECRET_ACCESS_KEY '{}'
+                    REGION AS '{}'
+                    JSON '{}'
+                    EMPTYASNULL
+                    BLANKSASNULL
+                    COMPUPDATE OFF
+            """
 
-        cur = conn.cursor()
-        cur.execute(staging_copy)
-        conn.commit()
-        conn.close()
+            staging_copy_formatted = staging_copy.format(self.RS_target_table,
+                                                         self.S3_path,
+                                                         credentials.access_key,
+                                                         credentials.secret_key,
+                                                         self.S3_region,
+                                                         self.S3_jsonpath)
 
-        self.log.info('staging from ' + self.S3_path + ' to ' + self.RS_host + ' ' + self.RS_dbname + ' completed')
+        else:
+            staging_copy = """
+                    COPY {}
+                    FROM '{}'
+                    ACCESS_KEY_ID '{}'
+                    SECRET_ACCESS_KEY '{}'
+                    REGION AS '{}'
+                    FORMAT AS JSON 'auto' 
+                    EMPTYASNULL
+                    BLANKSASNULL
+                    COMPUPDATE OFF
+            """
+
+            staging_copy_formatted = staging_copy.format(self.RS_target_table,
+                                                         self.S3_path,
+                                                         credentials.access_key,
+                                                         credentials.secret_key,
+                                                         self.S3_region)
+
+        redshift.run(staging_copy_formatted)
+
+        self.log.info('staging from ' + self.S3_path + ' to ' + self.RS_target_table + ' completed')
