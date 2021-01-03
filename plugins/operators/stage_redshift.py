@@ -16,7 +16,6 @@ class StageToRedshiftOperator(BaseOperator):
                  S3_key: str = '',
                  S3_jsonpath: str = None,
                  S3_region: str = 'us-west-2',
-
                  *args,
                  **kwargs):
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
