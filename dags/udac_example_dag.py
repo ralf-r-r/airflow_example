@@ -17,7 +17,7 @@ default_args = {
 dag = DAG('udac_example_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
-          schedule_interval='0 0 * * *'
+          schedule_interval='0 0 1 * *'  # @monthly
           )
 
 # - define start_operator
@@ -25,40 +25,42 @@ start_operator = DummyOperator(task_id='Begin_execution', dag=dag)
 
 # - define staging operators
 S3_key_logdata = "log_data/{execution_date.year}/{execution_date.month}/"
-S3_key_logdata += "{execution_date.year}-{execution_date.month}-{execution_date.day}-events.json"
 
 stage_events_to_redshift = StageToRedshiftOperator(
     task_id='Stage_events',
     dag=dag,
-    AWS_credentials_id='aws_credentials',
-    RS_conn_id='redshift',
-    RS_target_table='public.staging_events',
-    S3_bucket='s3://udacity-dend/',
-    S3_key=S3_key_logdata,
-    S3_jsonpath='s3://udacity-dend/log_json_path.json',
-    S3_region='us-west-2'
+    aws_credentials_id='aws_credentials',
+    rs_conn_id='redshift',
+    rs_target_table='public.staging_events',
+    s3_bucket='s3://udacity-dend/',
+    s3_key=S3_key_logdata,
+    s3_jsonpath='s3://udacity-dend/log_json_path.json',
+    s3_region='us-west-2'
 )
 
 stage_songs_to_redshift = StageToRedshiftOperator(
     task_id='Stage_songs',
     dag=dag,
-    AWS_credentials_id='aws_credentials',
-    RS_conn_id='redshift',
-    RS_target_table='public.staging_songs',
-    S3_bucket='s3://udacity-dend/',
-    S3_key='song_data/',
-    S3_jsonpath=None,
-    S3_region='us-west-2'
+    aws_credentials_id='aws_credentials',
+    rs_conn_id='redshift',
+    rs_target_table='public.staging_songs',
+    s3_bucket='s3://udacity-dend/',
+    s3_key='song_data/',
+    s3_jsonpath=None,
+    s3_region='us-west-2'
 )
-
-"""
 
 # - define fact and dimension operators
 load_songplays_table = LoadFactOperator(
     task_id='Load_songplays_fact_table',
-    dag=dag
+    dag=dag,
+    rs_conn_id='redshift',
+    prior_truncate=True,
+    rs_table_name='songplays',
+    sql_insert=SqlQueries.songplay_table_insert
 )
 
+"""
 load_user_dimension_table = LoadDimensionOperator(
     task_id='Load_user_dim_table',
     dag=dag
@@ -89,4 +91,5 @@ end_operator = DummyOperator(task_id='Stop_execution', dag=dag)
 
 # - define task dependencies
 start_operator >> [stage_events_to_redshift, stage_songs_to_redshift]
-[stage_events_to_redshift, stage_songs_to_redshift] >> end_operator
+[stage_events_to_redshift, stage_songs_to_redshift] >> load_songplays_table
+load_songplays_table >> end_operator

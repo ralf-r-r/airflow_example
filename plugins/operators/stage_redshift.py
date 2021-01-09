@@ -9,34 +9,35 @@ class StageToRedshiftOperator(BaseOperator):
 
     @apply_defaults
     def __init__(self,
-                 AWS_credentials_id: str,
-                 RS_conn_id: str,
-                 RS_target_table: str,
-                 S3_bucket: str,
-                 S3_key: str = '',
-                 S3_jsonpath: str = None,
-                 S3_region: str = 'us-west-2',
+                 aws_credentials_id: str,
+                 rs_conn_id: str,
+                 rs_target_table: str,
+                 s3_bucket: str,
+                 s3_key: str = '',
+                 s3_jsonpath: str = None,
+                 s3_region: str = 'us-west-2',
                  *args,
                  **kwargs):
+
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
 
-        self.AWS_credentials_id = AWS_credentials_id
-        self.RS_conn_id = RS_conn_id
-        self.RS_target_table = RS_target_table
-        self.S3_bucket = S3_bucket
-        self.S3_key = S3_key
-        self.S3_jsonpath = S3_jsonpath
-        self.S3_region = S3_region
+        self.aws_credentials_id = aws_credentials_id
+        self.rs_conn_id = rs_conn_id
+        self.rs_target_table = rs_target_table
+        self.s3_bucket = s3_bucket
+        self.s3_key = s3_key
+        self.s3_jsonpath = s3_jsonpath
+        self.s3_region = s3_region
 
 
     def execute(self, context):
-        self.log.info('staging from ' + self.S3_bucket + self.S3_key + ' to ' + self.RS_target_table + ' started')
+        self.log.info('staging from ' + self.s3_bucket + self.s3_key + ' to ' + self.rs_target_table + ' started')
 
-        redshift = PostgresHook(postgres_conn_id=self.RS_conn_id)
-        aws_hook = AwsHook(self.AWS_credentials_id)
+        redshift = PostgresHook(postgres_conn_id=self.rs_conn_id)
+        aws_hook = AwsHook(self.aws_credentials_id)
         credentials = aws_hook.get_credentials()
 
-        if self.S3_jsonpath != None:
+        if self.s3_jsonpath != None:
             staging_copy = """
                     COPY {}
                     FROM '{}'
@@ -49,12 +50,12 @@ class StageToRedshiftOperator(BaseOperator):
                     COMPUPDATE OFF
             """
 
-            staging_copy_formatted = staging_copy.format(self.RS_target_table,
-                                                         self.S3_bucket + self.S3_key,
+            staging_copy_formatted = staging_copy.format(self.rs_target_table,
+                                                         self.s3_bucket + self.s3_key,
                                                          credentials.access_key,
                                                          credentials.secret_key,
-                                                         self.S3_region,
-                                                         self.S3_jsonpath)
+                                                         self.s3_region,
+                                                         self.s3_jsonpath)
 
         else:
             staging_copy = """
@@ -69,12 +70,12 @@ class StageToRedshiftOperator(BaseOperator):
                     COMPUPDATE OFF
             """
 
-            staging_copy_formatted = staging_copy.format(self.RS_target_table,
-                                                         self.S3_bucket + self.S3_key,
+            staging_copy_formatted = staging_copy.format(self.rs_target_table,
+                                                         self.s3_bucket + self.s3_key,
                                                          credentials.access_key,
                                                          credentials.secret_key,
-                                                         self.S3_region)
+                                                         self.s3_region)
 
         redshift.run(staging_copy_formatted)
 
-        self.log.info('staging from ' + self.S3_bucket + self.S3_key + ' to ' + self.RS_target_table + ' completed')
+        self.log.info('loading from ' + self.s3_bucket + self.s3_key + ' to ' + self.rs_target_table + ' completed')
