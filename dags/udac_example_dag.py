@@ -17,15 +17,13 @@ default_args = {
 dag = DAG('udac_example_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
-          schedule_interval='0 0 1 * *'  # @monthly
+          schedule_interval='0 0 * * *'
           )
 
 # - define start_operator
 start_operator = DummyOperator(task_id='Begin_execution', dag=dag)
 
 # - define staging operators
-S3_key_logdata = "log_data/{execution_date.year}/{execution_date.month}/"
-
 stage_events_to_redshift = StageToRedshiftOperator(
     task_id='Stage_events',
     dag=dag,
@@ -33,9 +31,10 @@ stage_events_to_redshift = StageToRedshiftOperator(
     rs_conn_id='redshift',
     rs_target_table='public.staging_events',
     s3_bucket='s3://udacity-dend/',
-    s3_key=S3_key_logdata,
+    s3_key="log_data/{{ execution_date.year }}/{{ execution_date.month }}/{{ ds }}-events.json",
     s3_jsonpath='s3://udacity-dend/log_json_path.json',
-    s3_region='us-west-2'
+    s3_region='us-west-2',
+    provide_context=True
 )
 
 stage_songs_to_redshift = StageToRedshiftOperator(
@@ -47,7 +46,8 @@ stage_songs_to_redshift = StageToRedshiftOperator(
     s3_bucket='s3://udacity-dend/',
     s3_key='song_data/',
     s3_jsonpath=None,
-    s3_region='us-west-2'
+    s3_region='us-west-2',
+    provide_context=True
 )
 
 # - define fact and dimension operators
@@ -57,7 +57,8 @@ load_songplays_table = LoadFactOperator(
     rs_conn_id='redshift',
     prior_truncate=True,
     rs_table_name='songplays',
-    sql_insert=SqlQueries.songplay_table_insert
+    sql_insert=SqlQueries.songplay_table_insert,
+    provide_context=True
 )
 
 """

@@ -31,7 +31,7 @@ class StageToRedshiftOperator(BaseOperator):
 
 
     def execute(self, context):
-        self.log.info('staging from ' + self.s3_bucket + self.s3_key + ' to ' + self.rs_target_table + ' started')
+        self.log.info('starting staging from ' + self.s3_bucket + "log_data/{{ execution_date.year }}/{{ execution_date.month }}/{{ ds }}-events.json" + ' to ' + self.rs_target_table )
 
         redshift = PostgresHook(postgres_conn_id=self.rs_conn_id)
         aws_hook = AwsHook(self.aws_credentials_id)
