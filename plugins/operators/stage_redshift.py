@@ -6,7 +6,7 @@ from airflow.contrib.hooks.aws_hook import AwsHook
 
 class StageToRedshiftOperator(BaseOperator):
     ui_color = '#358140'
-
+    template_fields = ("s3_key",)
     @apply_defaults
     def __init__(self,
                  aws_credentials_id: str,
