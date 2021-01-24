@@ -24,14 +24,14 @@ class LoadFactOperator(BaseOperator):
         self.sql_insert = sql_insert
 
     def execute(self, context):
-        self.log.info(' Srating to copy data into ' + self.rs_table_name)
+        self.log.info('LoadFactOperator: Starting to copy data into ' + self.rs_table_name)
 
         redshift = PostgresHook(postgres_conn_id=self.rs_conn_id)
 
         if self.prior_truncate:
-            load_fact_query = "TRUNCATE TABLE {} ".format(self.rs_table_name) + self.sql_insert
-            redshift.run(load_fact_query)
+            redshift.run("TRUNCATE TABLE {} ".format(self.rs_table_name))
+            redshift.run(self.sql_insert)
         else:
             redshift.run(self.sql_insert)
 
-        self.log.info(' Copying data into ' + self.rs_table_name + ' completed')
+        self.log.info('LoadFactOperator: Copying data into ' + self.rs_table_name + ' completed')

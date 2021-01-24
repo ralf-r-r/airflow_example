@@ -6,7 +6,9 @@ from airflow.contrib.hooks.aws_hook import AwsHook
 
 class StageToRedshiftOperator(BaseOperator):
     ui_color = '#358140'
-    template_fields = ("s3_key",)
+    template_fields = ('s3_key',)
+    #template_ext = ['.json']
+
     @apply_defaults
     def __init__(self,
                  aws_credentials_id: str,
@@ -29,9 +31,11 @@ class StageToRedshiftOperator(BaseOperator):
         self.s3_jsonpath = s3_jsonpath
         self.s3_region = s3_region
 
-
     def execute(self, context):
-        self.log.info('starting staging from ' + self.s3_bucket + "log_data/{{ execution_date.year }}/{{ execution_date.month }}/{{ ds }}-events.json" + ' to ' + self.rs_target_table )
+
+        bucket_path = self.s3_bucket + self.s3_key.format(**context)
+
+        self.log.info('starting staging from ' + bucket_path + ' to ' + self.rs_target_table)
 
         redshift = PostgresHook(postgres_conn_id=self.rs_conn_id)
         aws_hook = AwsHook(self.aws_credentials_id)
@@ -51,7 +55,7 @@ class StageToRedshiftOperator(BaseOperator):
             """
 
             staging_copy_formatted = staging_copy.format(self.rs_target_table,
-                                                         self.s3_bucket + self.s3_key,
+                                                         bucket_path,
                                                          credentials.access_key,
                                                          credentials.secret_key,
                                                          self.s3_region,
@@ -71,7 +75,7 @@ class StageToRedshiftOperator(BaseOperator):
             """
 
             staging_copy_formatted = staging_copy.format(self.rs_target_table,
-                                                         self.s3_bucket + self.s3_key,
+                                                         bucket_path,
                                                          credentials.access_key,
                                                          credentials.secret_key,
                                                          self.s3_region)
