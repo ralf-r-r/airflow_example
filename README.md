@@ -45,7 +45,7 @@ And below is an example of what the data in a log file, 2018-11-12-events.json, 
 The data pipeline fills the following tables on an hourly schedule:
 
 ### Fact Tables
-**songplays** - records in log data associated with song plays i.e. records with page ```NextSong```
+- **songplays** - records in log data associated with song plays i.e. records with page ```NextSong```
 songplay_id, start_time, user_id, level, song_id, artist_id, session_id, location, user_agent
 
 ### Dimension Tables
