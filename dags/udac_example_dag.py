@@ -13,7 +13,9 @@ default_args = {
     'end_date': datetime(2018, 11, 2),
     'retries': 3,
     'retry_delay': timedelta(minutes=5),
-    'email_on_retry': False
+    'email_on_retry': False,
+    'catchup': True,
+    'depends_on_past': False
 }
 
 dag = DAG('udac_example_dag',
