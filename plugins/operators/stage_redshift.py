@@ -19,7 +19,15 @@ class StageToRedshiftOperator(BaseOperator):
                  s3_region: str = 'us-west-2',
                  *args,
                  **kwargs):
-
+        """
+        :param aws_credentials_id: str, aws credentials id
+        :param rs_conn_id: str, redshift connection id
+        :param rs_target_table: str, the name of the target table
+        :param s3_bucket: str, name of the aws s3 bucket
+        :param s3_key: str, name of the s3 bucket key
+        :param s3_jsonpath: str, the s3 json path
+        :param s3_region: str, the region of the s3 bucket
+        """
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
 
         self.aws_credentials_id = aws_credentials_id

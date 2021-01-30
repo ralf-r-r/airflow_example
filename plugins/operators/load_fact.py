@@ -14,7 +14,12 @@ class LoadFactOperator(BaseOperator):
                  sql_insert: str,
                  *args,
                  **kwargs):
-
+        """
+        :param rs_conn_id: str, redshift connection id
+        :param prior_truncate: bool, whether to truncate the table before inserting data
+        :param rs_table_name: str, the name of the table
+        :param sql_insert: str, sql statement to insert data
+        """
         super(LoadFactOperator, self).__init__(*args, **kwargs)
 
         self.rs_conn_id = rs_conn_id
