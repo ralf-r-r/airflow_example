@@ -4,7 +4,6 @@ from airflow.utils.decorators import apply_defaults
 
 
 class LoadFactOperator(BaseOperator):
-
     ui_color = '#F98866'
 
     @apply_defaults

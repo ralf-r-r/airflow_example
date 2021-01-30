@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import os
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from operators import (StageToRedshiftOperator, LoadFactOperator,
@@ -105,7 +104,7 @@ load_time_dimension_table = LoadDimensionOperator(
 )
 
 # - define quality check operator
-checks = data_quality.create_checks()
+checks = data_quality.create_sql_checks()
 run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
     dag=dag,
