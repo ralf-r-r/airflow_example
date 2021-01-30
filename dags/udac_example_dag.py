@@ -5,7 +5,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from operators import (StageToRedshiftOperator, LoadFactOperator,
                        LoadDimensionOperator, DataQualityOperator)
 
-from helpers import SqlQueries
+from helpers import SqlQueries, data_quality
 
 # - define start date, end date and schedule interval
 default_args = {
@@ -104,13 +104,15 @@ load_time_dimension_table = LoadDimensionOperator(
     provide_context=True
 )
 
-"""
 # - define quality check operator
+checks = data_quality.create_checks()
 run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
-    dag=dag
+    dag=dag,
+    rs_conn_id='redshift',
+    data_quality_checks=checks
 )
-"""
+
 end_operator = DummyOperator(task_id='Stop_execution', dag=dag)
 
 # - define task dependencies
@@ -126,4 +128,6 @@ load_songplays_table >> [load_user_dimension_table,
 [load_user_dimension_table,
  load_song_dimension_table,
  load_artist_dimension_table,
- load_time_dimension_table] >> end_operator
+ load_time_dimension_table] >> run_quality_checks
+
+run_quality_checks >> end_operator
